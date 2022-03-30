@@ -3,6 +3,7 @@ from queue import PriorityQueue
 from copy import deepcopy
 from telnetlib import DO
 import read
+import time
 
 class Elmt:
     def __init__(self, pos):
@@ -18,7 +19,7 @@ class Elmt:
 nodeNumber = 1
 nodeGenerated = 0
 depth = 0
-move = []
+path = []
 def incrNode():
     global nodeNumber
     nodeNumber += 1
@@ -32,9 +33,15 @@ def posToRowCol(n):
     col = (n-1)%4
     return row, col
 
+def printPath(curNode):
+    global path 
+    if (curNode.parent != None):
+        path.append([curNode.parent.name, curNode.name, curNode.prevMove])
+        printPath(curNode.parent)
+
 class Puzzle:
     def __init__(self):
-        self.parent = "root"
+        self.parent = None
         self.name = 1
         self.elmt = [[Elmt( (i+1) + (4*j) ) for i in range(4)] for j in range(4)]
         self.fp = 0
@@ -42,7 +49,7 @@ class Puzzle:
         self.cost = 0
         self.goal = 0
         self.child = {}
-        self.emptyPos = 7
+        self.emptyPos = 5
         self.emptyPosRow = self.posToRow(self.emptyPos)
         self.emptyPosCol = self.posToCol(self.emptyPos)
         self.nextMove = {"up": True, "right": True, "down": True, "left": True}
@@ -171,12 +178,18 @@ class Puzzle:
                     return False
         return finish
     
-    def findEmpty(self):
-    # return 0 index of row and col for -1 (empty box)
+    def findEmpty(self, flatten):
+    # return index for -1 (empty box)
         for i in range(4):
             for j in range(4):
                 if self.elmt[i][j].getVal() == -1:
-                    return posToRowCol(self.elmt[i][j].getPos())
+                    if flatten:
+                        # 1 index
+                        return self.elmt[i][j].getPos()
+                    else:
+                        # 4x4
+                        return posToRowCol(self.elmt[i][j].getPos())
+            
     
     def move(self, direction):
         row = self.emptyPosRow
@@ -199,12 +212,14 @@ class Puzzle:
         self.emptyPosCol = self.emptyPosCol+moveCol
         
         newPos = rowColToPos(row+moveRow,col+moveCol)
-        emptyRow, emptyCol = self.findEmpty()
+        emptyRow, emptyCol = self.findEmpty(False)
         
         # top/bottom/left/right empty elmt
         temp = self.elmt[emptyRow+moveRow][emptyCol+moveCol].getVal()
         self.elmt[emptyRow+moveRow][emptyCol+moveCol].val = -1
         self.elmt[emptyRow][emptyCol].val = temp
+        
+
         
         
     def checkMove(self):
@@ -253,13 +268,12 @@ class Puzzle:
         global nodeGenerated
         # print("next move is generated ===========================")
         global nodeNumber
-        global move
+        global path
         self.checkMove()
         for key in self.nextMove:
             if self.nextMove[key] == True:
                 temp = deepcopy(self)
-                temp.checkMove()
-                temp.parent = self.name
+                temp.parent = self
                 temp.move(key)
                 temp.prevMove = key
                 incrNode()
@@ -298,7 +312,7 @@ p1.elmt[3][3].val = 12
 def printQueue(queue):
     for i in range(len(queue)):
     # for i in range(len(queue.queue)):
-        print("(cost(as queue key):",queue[i][0],",nodeName:",queue[i][1].name, queue[i][1].prevMove)
+        print("(cost(as queue key):",queue[i][0],",nodeName:",queue[i][1].name, queue[i][1].prevMove, "parent",queue[i][1].parent)
 
 # def minimizeQueue(queue):
 #     head = queue.get()
@@ -309,8 +323,9 @@ def printQueue(queue):
             
 
 def asd(puzzle):
+    startTime = time.time()
     global depth
-    global move
+    global path
     # if (puzzle.goal % 2) == 0:
     singleOccurance = False
     queue = []
@@ -322,23 +337,38 @@ def asd(puzzle):
         # t[1].print()
         return p1
     while (len(queue) != 0):
-        # if depth == 12:
-        # # # if head[1].fp == 10:
-        #     head = queue.pop()
-        #     head[1].print()
-        # #     printQueue(queue)
-        #     print(move)
+        # if startTime > startTime + 5:
+        if depth == 50:
+            head = queue.pop()
+            print("node generated:", nodeGenerated)
+            printPath(head[1])
+            path.reverse()
+            print(path)
+            break
+        
+        # if depth == 5:
+        #     print("node generated:", nodeGenerated)
+        # # if head[1].fp == 10:
+        # #     head = queue.pop()
+        # #     head[1].print()
+        # # #     printQueue(queue)
+        # #     print(move)
         #     break
-        # printQueue(queue)
         head = queue.pop()
-        head[1].checkMove()
-        move.append(head[1].prevMove)
+        
+        # printQueue(queue)
         # head[1].print()
         if head[1].isFinish():
+            endTime = time.time()
+            print(endTime - startTime)
             print("finish")
             print("node generated:", nodeGenerated)
+            printPath(head[1])
+            path.reverse()
+            print(path)
             return head[1]
         else:
+            print(depth)
             # printQueue(queue)
             head[1].generateNextMove(queue)
 
@@ -350,13 +380,17 @@ def asd(puzzle):
 # print(p1.elmt)
 
 def readFile():
-    readPuzzle = read.run("input1.txt")
+    readPuzzle = read.run("input3.txt")
     for i in range(4):
         for j in range(4):
             if readPuzzle[i][j] == 'x':
                 p1.elmt[i][j].val = -1
             else:
                 p1.elmt[i][j].val = int(readPuzzle[i][j])
+    
+
+    # p1.emptyPos = p1.findEmpty(True)
+    # print(p1.emptyPos)
     # for i in range(4):
     #     for j in range(4):
     #         # print(i, j)
@@ -366,6 +400,8 @@ def readFile():
 #         # print(i, j)
 #         print("manual input", p1.elmt[i][j].val)
 readFile()
+p1.emptyPos = p1.findEmpty(True)
+print(p1.emptyPos)
 print("goal", p1.getGoal())
 # p1.print()
 # print(p1.getWrongPos())
