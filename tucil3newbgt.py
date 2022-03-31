@@ -9,8 +9,15 @@ class Elmt:
     def __init__(self, pos):
         self.val = -1
         self.pos = pos
+        
+    def getVal(self):
+        return self.val
+    
+    def getPos(self):
+        return self.pos
 
 nodeNumber = 1
+nodeGenerated = 0
 depth = 0
 path = []
 def incrNode():
@@ -34,25 +41,27 @@ def printPath(curNode):
 
 class Puzzle:
     def __init__(self):
+        self.parent = None
         self.name = 1
-        self.elmt = [[Elmt( (i+1) + (4*j) ) for i in range(4)] for j in range(4)]
+        self.elmt = [-99 for i in range(16)]
         self.fp = 0
         self.gp = 0
         self.cost = 0
+        self.goal = 0
+        self.child = {}
         self.emptyPos = 5
         self.emptyPosRow = self.posToRow(self.emptyPos)
         self.emptyPosCol = self.posToCol(self.emptyPos)
         self.nextMove = {"up": True, "right": True, "down": True, "left": True}
         self.prevMove = ""
-        self.path = []
 
     def findPos(self, val):
     # return 1 indexing of val
         pos = -99
-        for i in range(4):
+        for i in range(16):
             for j in range(4):
-                if self.elmt[i][j].val == val:
-                    pos = self.elmt[i][j].pos
+                if self.elmt[i][j].getVal() == val:
+                    pos = self.elmt[i][j].getPos()
         if val == 16:
             return 16
         else:
@@ -62,7 +71,7 @@ class Puzzle:
         count = 0
         for i in range(4):
             for j in range(4):
-                if (self.elmt[i][j].val < iparam) and (self.elmt[i][j].pos > self.findPos(iparam) and self.elmt[i][j].val != -1):
+                if (self.elmt[i][j].getVal() < iparam) and (self.elmt[i][j].getPos() > self.findPos(iparam) and self.elmt[i][j].getVal() != -1):
                     count += 1
         return count
     
@@ -70,7 +79,7 @@ class Puzzle:
         count = 0
         for i in range(4):
             for j in range(4):
-                if (self.elmt[i][j].val < 16) and (self.elmt[i][j].pos > self.findPos(iparam) and self.elmt[i][j].val != -1):
+                if (self.elmt[i][j].getVal() < 16) and (self.elmt[i][j].getPos() > self.findPos(iparam) and self.elmt[i][j].getVal() != -1):
                     count += 1
         return count
     
@@ -128,9 +137,9 @@ class Puzzle:
                 if j == 0:
                     print("[", end="")
                 
-                output = self.elmt[i][j].val
-                if len(str(self.elmt[i][j].val)) == 1:
-                    output = " " + str(self.elmt[i][j].val)
+                output = self.elmt[i][j].getVal()
+                if len(str(self.elmt[i][j].getVal())) == 1:
+                    output = " " + str(self.elmt[i][j].getVal())
                 print("", output, "", end="")
                 if j == 3:
                     print("]", end="")
@@ -153,7 +162,8 @@ class Puzzle:
         for i in range(4):
             for j in range(4):
                 # print(i, j)
-                if self.getVal(i,j) != self.getPos(i,j) and self.getVal(i,j) != -1:
+                if self.getVal(i,j) != -1:
+                    if self.getVal(i,j) != self.getPos(i,j):
                         # print(i, j, self.getVal(i,j), "!=", self.getPos(i,j))
                         countWrongPos += 1
                     # else:
@@ -164,32 +174,21 @@ class Puzzle:
         finish = True
         for i in range(4):
             for j in range(4):
-                if self.elmt[i][j].val != self.elmt[i][j].pos and self.getVal(i,j) != -1:
+                if self.elmt[i][j].getVal() != self.elmt[i][j].getPos() and self.getVal(i,j) != -1:
                     return False
         return finish
-    
-    def countCorrect(self):
-        count = 0
-        for i in range(4):
-            for j in range(4):
-                if self.elmt[i][j].val == self.elmt[i][j].pos:
-                    count += 1
-        if count == 15:
-            return True
-        else:
-            return False
     
     def findEmpty(self, flatten):
     # return index for -1 (empty box)
         for i in range(4):
             for j in range(4):
-                if self.elmt[i][j].val == -1:
+                if self.elmt[i][j].getVal() == -1:
                     if flatten:
                         # 1 index
-                        return self.elmt[i][j].pos
+                        return self.elmt[i][j].getPos()
                     else:
                         # 4x4
-                        return posToRowCol(self.elmt[i][j].pos)
+                        return posToRowCol(self.elmt[i][j].getPos())
             
     
     def move(self, direction):
@@ -216,7 +215,7 @@ class Puzzle:
         emptyRow, emptyCol = self.findEmpty(False)
         
         # top/bottom/left/right empty elmt
-        temp = self.elmt[emptyRow+moveRow][emptyCol+moveCol].val
+        temp = self.elmt[emptyRow+moveRow][emptyCol+moveCol].getVal()
         self.elmt[emptyRow+moveRow][emptyCol+moveCol].val = -1
         self.elmt[emptyRow][emptyCol].val = temp
         
@@ -266,90 +265,31 @@ class Puzzle:
         global depth
         depth += 1
         # print(depth)
+        global nodeGenerated
         # print("next move is generated ===========================")
         global nodeNumber
         global path
         self.checkMove()
-        
         for key in self.nextMove:
             if self.nextMove[key] == True:
                 temp = deepcopy(self)
+                temp.parent = self
                 temp.move(key)
                 temp.prevMove = key
-                nodeNumber += 1
+                incrNode()
                 temp.name = nodeNumber
                 temp.fp += 1
                 temp.gp = temp.getWrongPos()
                 temp.initCost()
                 # print("================================temp cost:", temp.cost)
-                # print(nodeGenerated)
-                # self.child.update({temp.name:temp})
+                nodeGenerated += 1
+                
+                self.child.update({temp.name:temp})
         # smallestKey = self.getSmallestChildCost()
         # smallest = self.child[smallestKey]
         # queue.append((smallest.cost, smallest))
-                # path.append(key)
-                # temp.path = self.path
-                temp.path.append(key)
                 queue.append((temp.cost, temp))
-        queue.sort(reverse=True)
-        
-        # if self.nextMove["up"] == True:
-        #     temp = deepcopy(self)
-        #     temp.move("up")
-        #     temp.prevMove = "up"
-        #     temp.parent = self
-        #     incrNode()
-        #     temp.name = nodeNumber
-        #     temp.fp += 1
-        #     temp.gp = temp.getWrongPos()
-        #     temp.initCost()
-        #     nodeGenerated += 1
-        #     self.child.update({temp.name:temp})
-        #     queue.append((temp.cost, temp))
-        #     # queue.sort(reverse=True)
-        
-        # if self.nextMove["down"] == True:
-        #     temp = deepcopy(self)
-        #     temp.move("down")
-        #     temp.prevMove = "down"
-        #     temp.parent = self
-        #     incrNode()
-        #     temp.name = nodeNumber
-        #     temp.fp += 1
-        #     temp.gp = temp.getWrongPos()
-        #     temp.initCost()
-        #     nodeGenerated += 1
-        #     self.child.update({temp.name:temp})
-        #     queue.append((temp.cost, temp))
-        #     # queue.sort(reverse=True)
-        # if self.nextMove["left"] == True:
-        #     temp = deepcopy(self)
-        #     temp.move("left")
-        #     temp.prevMove = "left"
-        #     temp.parent = self
-        #     incrNode()
-        #     temp.name = nodeNumber
-        #     temp.fp += 1
-        #     temp.gp = temp.getWrongPos()
-        #     temp.initCost()
-        #     nodeGenerated += 1
-        #     self.child.update({temp.name:temp})
-        #     queue.append((temp.cost, temp))
-        #     # queue.sort(reverse=True)
-        # if self.nextMove["right"] == True:
-        #     temp = deepcopy(self)
-        #     temp.move("right")
-        #     temp.prevMove = "right"
-        #     temp.parent = self
-        #     incrNode()
-        #     temp.name = nodeNumber
-        #     temp.fp += 1
-        #     temp.gp = temp.getWrongPos()
-        #     temp.initCost()
-        #     nodeGenerated += 1
-        #     self.child.update({temp.name:temp})
-        #     queue.append((temp.cost, temp))
-        # queue.sort(reverse=True)
+                queue.sort(reverse=True)
 
 p1 = Puzzle()
 p1.elmt[0][0].val = 1
@@ -398,14 +338,13 @@ def asd(puzzle):
         return p1
     while (len(queue) != 0):
         # if startTime > startTime + 5:
-        # if depth == 5000:
-        #     head = queue.pop()
-        #     print("node generated:", nodeNumber)
-        #     endTime = time.time()
-        #     print(endTime - startTime)
-        #     path.reverse()
-        #     print(path)
-        #     break
+        if depth == 50:
+            head = queue.pop()
+            print("node generated:", nodeGenerated)
+            printPath(head[1])
+            path.reverse()
+            print(path)
+            break
         
         # if depth == 5:
         #     print("node generated:", nodeGenerated)
@@ -422,10 +361,9 @@ def asd(puzzle):
         if head[1].isFinish():
             endTime = time.time()
             print(endTime - startTime)
-            # printQueue(queue)
             print("finish")
-            print("node generated:", nodeNumber)
-            print(head[1].path)
+            print("node generated:", nodeGenerated)
+            printPath(head[1])
             path.reverse()
             print(path)
             return head[1]
