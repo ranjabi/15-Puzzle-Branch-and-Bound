@@ -380,7 +380,7 @@ def asd(puzzle):
 # print(p1.elmt)
 
 def readFile():
-    readPuzzle = read.run("input3.txt")
+    readPuzzle = read.run("input5.txt")
     for i in range(4):
         for j in range(4):
             if readPuzzle[i][j] == 'x':
