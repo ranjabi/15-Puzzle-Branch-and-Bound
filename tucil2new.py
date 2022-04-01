@@ -100,12 +100,13 @@ class Puzzle:
     
     def getGoal(self):
     # return goal
+        print("----------KURANG(i)----------")
         x = 0
         sumKurang = 0
         if self.isArsirPos()==True:
             x = 1
         for i in range(1, 16):
-            print(i, self.getKurang(i))
+            print(i, ":", self.getKurang(i))
             sumKurang += self.getKurang(i)
         lastKurang = self.getKurang16()
         self.goal = (sumKurang+x+lastKurang)
@@ -138,7 +139,7 @@ class Puzzle:
     
     def print(self):
     # print current node puzzle
-        print("---------" + str(self.name) + "---------")
+        # print("---------" + str(self.name) + "---------")
         for i in range(4):
             for j in range(4):
                 if j == 0:
@@ -152,15 +153,15 @@ class Puzzle:
                     print("]", end="")
                 if ((j+1) % 4 == 0):
                     print("")
-        print("fp:", self.fp)
-        print("gp:", self.gp)
-        print("cost:", self.cost)
-        print("empty pos:", self.emptyPos)
-        print("empty pos row:", self.emptyPosRow)
-        print("empty pos col:", self.emptyPosCol)
-        print("prev move:", self.prevMove)
-        self.printNextMove()
-        print("===================\n")
+        # print("fp:", self.fp)
+        # print("gp:", self.gp)
+        # print("cost:", self.cost)
+        # print("empty pos:", self.emptyPos)
+        # print("empty pos row:", self.emptyPosRow)
+        # print("empty pos col:", self.emptyPosCol)
+        # print("prev move:", self.prevMove)
+        # self.printNextMove()
+        # print("===================\n")
         
     def getWrongPos(self):
     # return the number of wrong position
@@ -307,12 +308,26 @@ def main(puzzle):
                 print(head[1].path)
                 # path.reverse()
                 path = head[1].path
-                for i in range(len(path)):
-                    print(path[i][0])
-                    for j in range(4):
-                        for k in range(4):
-                            print(path[i][1][j][k], ",", end="")
-                        print()
+                for k in range(len(path)):
+                    print("-----" + path[k][0] + "-----")
+                    # for j in range(4):
+                    #     for k in range(4):
+                    #         print(path[i][1][j][k], ",", end="")
+                    #     print()
+                    for i in range(4):
+                        for j in range(4):
+                            if j == 0:
+                                print("[", end="")
+                            
+                            output = path[k][1][i][j]
+                            if len(str(output)) == 1:
+                                output = " " + str(output)
+                            print("", output, "", end="")
+                            if j == 3:
+                                print("]", end="")
+                            if ((j+1) % 4 == 0):
+                                print("")
+                    
                 return head[1]
             else:
                 head[1].generateNextMove(queue)
@@ -337,7 +352,7 @@ while True:
                 readPuzzle[i][j] = readPuzzleFlat[k]
                 k += 1
     else:
-        print(filename)
+        print("Puzzle loaded from:", filename)
         readPuzzle = read.run(filename)
         
         for i in range(4):
@@ -346,7 +361,6 @@ while True:
                     emptyPos = i+1 + 4*j
                 
     puzzle = Puzzle(emptyPos)
-    
     for i in range(4):
         for j in range(4):
             if readPuzzle[i][j] == 'x':
@@ -355,14 +369,12 @@ while True:
             else:
                 puzzle.elmt[i][j].val = int(readPuzzle[i][j])
                 
-    print("empty pos", emptyPos)
+    # print("empty pos", emptyPos) INI SALAH
     
     
     puzzle.emptyPos = puzzle.findEmpty(True)
-    print(puzzle.emptyPos)
-    print("goal", puzzle.getGoal())
+    print("Goal:", puzzle.getGoal())
     
-    if puzzle.getGoal() % 2 == 0:
-        main(puzzle)
-    else:
-        print("unreachable")
+    main(puzzle)
+    
+    # print(puzzle.emptyPos)
