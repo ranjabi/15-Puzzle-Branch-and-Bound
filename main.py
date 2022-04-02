@@ -35,7 +35,7 @@ class Puzzle:
         return list
     
         
-    def incrNode():
+    def incrNode(self):
         global nodeNumber
         nodeNumber += 1
 
@@ -100,16 +100,18 @@ class Puzzle:
     
     def getGoal(self):
     # return goal
-        print("----------KURANG(i)----------")
+        print("\n==== KURANG(i) ====")
         x = 0
         sumKurang = 0
         if self.isArsirPos()==True:
             x = 1
         for i in range(1, 16):
-            print(i, ":", self.getKurang(i))
+            print("Kurang(" + str(i) + ") : " + str(self.getKurang(i)))
             sumKurang += self.getKurang(i)
         lastKurang = self.getKurang16()
         self.goal = (sumKurang+x+lastKurang)
+        print("===================")
+        print("Goal <Kurang(i) + X>: " + str(self.goal))
         return (sumKurang+x+lastKurang)
         
     def initCost(self):
@@ -274,10 +276,10 @@ class Puzzle:
                 temp.initCost()
                 temp.path.append([key, temp.elmtToList()])
                 queue.append((temp.cost, temp))
+                nodeNumber += 1
         queue.sort(reverse=True)
 
 def printQueue(queue):
-# print queue
     for i in range(len(queue)):
         print("(cost(as queue key):",queue[i][0],",nodeName:",queue[i][1].name, queue[i][1].prevMove, "parent",queue[i][1].parent)
             
@@ -287,7 +289,10 @@ def main(puzzle):
     global path
     startTime = time.time()
     depth = 0
-    nodeNumber = 0
+    
+    print("\nSTARTING POSITION:")
+    puzzle.print()
+    print("\nPlease wait...\n")
     
     if (puzzle.goal % 2) != 0:
         print("Puzzle tidak dapat diselesaikan")
@@ -300,20 +305,10 @@ def main(puzzle):
         while (len(queue) != 0):
             head = queue.pop()
             if head[1].isFinish():
-                puzzle.print()
                 endTime = time.time()
-                print(endTime - startTime)
-                print("finish")
-                print("node generated:", nodeNumber)
-                print(head[1].path)
-                # path.reverse()
                 path = head[1].path
                 for k in range(len(path)):
-                    print("-----" + path[k][0] + "-----")
-                    # for j in range(4):
-                    #     for k in range(4):
-                    #         print(path[i][1][j][k], ",", end="")
-                    #     print()
+                    print(str(path[k][0]).upper())
                     for i in range(4):
                         for j in range(4):
                             if j == 0:
@@ -327,6 +322,11 @@ def main(puzzle):
                                 print("]", end="")
                             if ((j+1) % 4 == 0):
                                 print("")
+                    print()
+                print("Puzzle telah selesai.")
+                print("Execution Time:", endTime - startTime, "s")
+                print("Node Generated:", nodeNumber)
+                print()
                     
                 return head[1]
             else:
@@ -334,24 +334,48 @@ def main(puzzle):
 
 while True:
     filename = ""
-    option = input("Pilih input: ")
-    filename = "input" + str(option) + ".txt"
-    if option == '0':
+    print("Pilih input puzzle:")
+    print("1. Generate Random Puzzle")
+    print("2. Baca dari File")
+    option = input("Input: ")
+    if option == '1':
         # generate random puzzle
-        readPuzzleFlat = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-        for i in range(5):
-            random.shuffle(readPuzzleFlat)
+        flatPuzzle = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+        for i in range(0,20):
+            randomNum = random.randint(1,12)
+            emptyIdx = flatPuzzle.index(16)
+            if 1 <= randomNum <= 9 and emptyIdx != 0:
+                # move left
+                temp = flatPuzzle[emptyIdx-1]
+                flatPuzzle[emptyIdx-1] = 16
+                flatPuzzle[emptyIdx] = temp
+            elif 4 <= randomNum <= 6 and emptyIdx != 15:
+                # move right
+                temp = flatPuzzle[emptyIdx+1]
+                flatPuzzle[emptyIdx+1] = 16
+                flatPuzzle[emptyIdx] = temp
+            elif 7 <= randomNum <= 9 and not(0 <= emptyIdx <= 3):
+                # move up
+                temp = flatPuzzle[emptyIdx-4]
+                flatPuzzle[emptyIdx-4] = 16
+                flatPuzzle[emptyIdx] = temp
+            elif 10 <= randomNum <= 12 and not(12 <= emptyIdx <= 15):
+                # move down
+                temp = flatPuzzle[emptyIdx+4]
+                flatPuzzle[emptyIdx+4] = 16
+                flatPuzzle[emptyIdx] = temp
         for i in range(16):
-            if readPuzzleFlat[i] == 16:
-                readPuzzleFlat[i] = 'x'
+            if flatPuzzle[i] == 16:
+                flatPuzzle[i] = 'x'
                 emptyPos = i+1
         readPuzzle = [[-1 for i in range(4)] for j in range(4)]
         k = 0
         for i in range(4):
             for j in range(4):
-                readPuzzle[i][j] = readPuzzleFlat[k]
+                readPuzzle[i][j] = flatPuzzle[k]
                 k += 1
-    else:
+    elif option == '2':
+        filename = input("Masukkan nama file (sertakan .txt): ")
         print("Puzzle loaded from:", filename)
         readPuzzle = read.run(filename)
         
@@ -359,7 +383,9 @@ while True:
             for j in range(4):
                 if readPuzzle[i][j] == 'x':
                     emptyPos = i+1 + 4*j
-                
+    else:
+        continue
+             
     puzzle = Puzzle(emptyPos)
     for i in range(4):
         for j in range(4):
@@ -368,13 +394,10 @@ while True:
                 emptyPos = i+1 + 4*j
             else:
                 puzzle.elmt[i][j].val = int(readPuzzle[i][j])
-                
-    # print("empty pos", emptyPos) INI SALAH
     
-    
-    puzzle.emptyPos = puzzle.findEmpty(True)
-    print("Goal:", puzzle.getGoal())
+    puzzle.getGoal()
     
     main(puzzle)
     
-    # print(puzzle.emptyPos)
+if __name__ == "__main__":
+    main()
